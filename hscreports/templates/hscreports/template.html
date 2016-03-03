@@ -1,0 +1,276 @@
+{% load djblets_extensions %}
+
+<div id="checklist"></div>
+<style>
+    #review-report table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+        border: 1px solid lightgrey;
+    }
+
+    #review-report table thead tr {
+        background-color: lightgrey;
+        font-weight: bold;
+        height: 35px;
+        cursor: pointer;
+    }
+
+    #review-report table tbody tr {
+        background-color: white;
+        height: 30px;
+        cursor: pointer;
+
+    }
+
+    #review-report table tbody tr:nth-child(odd) {
+        background-color: #F2F2F2;
+    }
+
+    #review-report table tbody tr:hover {
+        background-color: #d4e0f3;
+    }
+
+    #review-report table thead tr td:nth-child(3), #review-report table thead tr td:nth-child(2), #review-report table tbody tr td:nth-child(2), #review-report table tbody tr td:nth-child(3) {
+        text-align: left;
+    }
+
+    #hsc-close {
+        cursor: pointer;
+    }
+</style>
+<script>
+    var GroupModel = Backbone.Model.extend({
+        'urlRoot': '/api/groups/',
+        'repo': []
+    });
+    var groupModel = new GroupModel();
+    groupModel.fetch({
+        'success': function () {
+            console.log(arguments);
+            groupModel.set({'group': arguments[1].groups});
+            console.info("Data loaded successfully.");
+        },
+        'errror': function () {
+            console.log(arguments);
+            console.error("Data loading fail");
+        }
+    });
+    var selectorView = Backbone.View.extend({
+        render: function () {
+            var html = [];
+            html.push('<div class="modalbox-bg" style="opacity: 0.85; left: 0px; top: 0px; position: fixed; width: 100%; height: 100%; background-color: rgb(0, 0, 0);">');
+            html.push('</div>');
+            html.push('<div class="modalbox"  style="left: 0px; top: 0px; position: fixed; width: 96%; height: 96%;margin:0px 2%;">');
+            html.push('<div class="modalbox-inner" style="position: relative; width: 100%; height: 100%;">');
+            html.push('<div style="overflow: hidden" class="modalbox-title">');
+            html.push('<div style="float: left;">');
+            html.push('<h1 >HSC Reports</h1>');
+            html.push('</div>');
+            html.push('<div style="float: right;">');
+            html.push('<h1 id="hsc-close">X</h1>');
+            html.push('</div>');
+            html.push('</div>');
+            html.push('<div class="modalbox-contents" scrolltop="0" style="height: 90%;">');
+            html.push('<div style="margin: 0px 20%">')
+            html.push('<select id="review-group" style="height: 40px;">');
+            html.push('<option value="">Select Group</option>');
+            this.model.get('group').forEach(function (value) {
+                html.push('<option value="' + value.display_name + '">' + value.display_name + '</option>');
+            });
+            html.push('</select>');
+            html.push('<label for="start-date" style="font-size: 14px;"> Start Date </label>')
+            html.push('<input class="date" id="start-date" type="text" style="height: 30px;text-align: center;"/>');
+            html.push('<label for="end-date" style="font-size: 14px;"> End Date </label>')
+            html.push('<input class="date" id="end-date" type="text" style="height: 30px;text-align: center;"/>&nbsp;');
+            html.push('<input id="get-data" type="submit" value="Report" style="height: 35px;width: 100px;"/>');
+            html.push('</div>')
+            html.push('<hr/>');
+            html.push('<div id="review-report" tabindex="1" style="height:90%;overflow: auto;"></div>');
+            html.push('</div>');
+            html.push('</div>');
+            html.push('</div>');
+
+            this.$el.html(html.join(''));
+            return this;
+        },
+        'initialize': function () {
+            this.model.on('change', function () {
+                this.render();
+            }, this)
+        }
+    });
+    var ReportModel = Backbone.Model.extend({
+        'urlRoot': '/api/extensions/hscreports.extension.Hscreports/report/',
+        'data': []
+    });
+
+    var ExportModel = Backbone.Model.extend({
+        'urlRoot': '/api/extensions/hscreports.extension.Hscreports/export/',
+        'data': []
+    });
+    var ReportView = Backbone.View.extend({
+        'render': function () {
+            var html = [];
+            var header = ["ReviewID", "Summary", "Reviewee", "Open", "Fixed", "Dropped", "Critical", "Major", "Minor", "Enhancement", "Export"];
+            html.push('<table>');
+            html.push('<thead >');
+            html.push('<tr  class="datagrid-headers">');
+            header.forEach(function (value) {
+                html.push('<td>' + value + '</td>');
+            });
+            html.push('</tr>');
+            html.push('</thead>');
+            html.push('<tbody>');
+            if (this.model.get('data')) {
+                var resp = this.model.get('data');
+                var reviewAr = Object.keys(resp).sort(function (a, b) {
+                    var a = parseInt(a);
+                    var b = parseInt(b);
+                    if (b > a) {
+                        return 1
+                    } else if (b < a) {
+                        return -1
+                    } else {
+                        return 0;
+                    }
+                });
+                var totalOpen = 0;
+                var totalResolved = 0;
+                var totalDropped = 0;
+                var totalCritical = 0;
+                var totalMajor = 0;
+                var totalMinor = 0;
+                var totalEnhancement = 0;
+                reviewAr.forEach(function (key) {
+                    var value = resp[key];
+                    html.push('<tr>');
+                    html.push('<td>' + value.id + '</td>');
+                    html.push('<td>' + value.summary + '</td>');
+                    html.push('<td>' + value.firstName + ' ' + value.lastName + '</td>');
+                    html.push('<td>' + value.open + '</td>');
+                    html.push('<td>' + value.resolved + '</td>');
+                    html.push('<td>' + value.dropped + '</td>');
+                    html.push('<td>' + value.critical + '</td>');
+                    html.push('<td> ' + value.major + '</td>');
+                    html.push('<td> ' + value.minor + '</td>');
+                    html.push('<td> ' + value.enhancement + '</td>');
+                    html.push('<td> <input type="button" value="Export" id="' + value.id + '" /></td>');
+                    html.push('</tr>');
+                    totalOpen        += value.open;
+                    totalResolved    += value.resolved;
+                    totalDropped     += value.dropped;
+                    totalCritical    += value.critical;
+                    totalMajor       += value.major;
+                    totalMinor       += value.minor;
+                    totalEnhancement += value.enhancement;
+                });
+                
+                html.push('<tr>');
+                html.push('<td>' + '' + '</td>');
+                html.push('<td><b>' + 'Total' + '</b></td>');
+                html.push('<td>' + '' + '</td>');
+                html.push('<td><b>' + totalOpen + '</b></td>');
+                html.push('<td><b>' + totalResolved + '</b></td>');
+                html.push('<td><b>' + totalDropped + '</b></td>');
+                html.push('<td><b>' + totalCritical + '</b></td>');
+                html.push('<td><b>' + totalMajor + '</b></td>');
+                html.push('<td><b>' + totalMinor + '</b></td>');
+                html.push('<td><b>' + totalEnhancement + '</b></td>');
+                html.push('<td>' + '' + '</td>');
+                html.push('</tr>');
+            }
+            html.push('</tbody>');
+            html.push('</table>');
+            this.$el.html(html.join(''));
+        },
+        'initialize': function () {
+            this.model.on('change', function () {
+                this.render();
+            }, this);
+        }
+    });
+
+    $(document).ready(function () {
+        $('body').append("<div id='hscreports'></div>");
+        console.log("HSC reports JS loaded :)")
+        var parent = $('a[href="None"]').parents('li')[0];
+        $(parent).removeAttr('onclick');
+        $('a[href="None"]').on('click', function (event) {
+            event.preventDefault();
+            var view = new selectorView({el: '#hscreports', 'model': groupModel});
+            view.render();
+            console.info(view.el);
+            $('#hsc-close').on("click", function () {
+                $('#hsc-close').off("click");
+                $('#hscreports').html("");
+                $('.date').datepicker('destroy');
+            });
+            $('.date').datepicker({dateFormat: 'yy-mm-dd'});
+            $('#start-date').datepicker('setDate', '-1m');
+            $('#end-date').datepicker('setDate', '+0');
+
+            $('#get-data').on('click', loadReport);
+            $('#hscreports').on('keyup', loadReport);
+            function loadReport(e) {
+                if (e.type == 'keyup' && e.keyCode !== 13) {
+                    return 0;
+                }
+                var reportModel = new ReportModel();
+                var reviewGroup = $('#review-group').val();
+                var startDate = $('#start-date').val();
+                var endDate = $('#end-date').val();
+                reportModel.fetch({
+                    data: $.param({'review_group': reviewGroup, 'start_date': startDate, 'end_date': endDate}),
+                    success: function () {
+                        console.log(arguments);
+                        console.info(JSON.parse(arguments[1].hsc_report));
+                        reportModel.set({'data': JSON.parse(arguments[1].hsc_report)});
+                        console.info("HscReport loaded successfully.");
+                    },
+                    fail: function () {
+                        console.info(arguments);
+                    }
+                });
+                var reportView = new ReportView({model: reportModel, el: '#review-report'});
+                reportView.render();
+            }
+        });
+        $('#hscreports').on('click', 'input[value="Export"]', function (event) {
+            var _id = $(this).attr("id");
+            console.info(_id);
+
+            var exportModel = new ExportModel();
+            exportModel.fetch({
+                data: $.param({req_id: _id}),
+                success: function (data) {
+                    console.info(data.attributes.hsc_export_csv);
+                    var csv = data.attributes.hsc_export_csv.data;
+                    //Initialize file format you want csv or xls
+                    var uri = 'data:text/csv;charset=utf-8,' + escape(csv);
+
+                    // Now the little tricky part.
+                    // you can use either>> window.open(uri);
+                    // but this will not work in some browsers
+                    // or you will not get the correct file extension
+
+                    //this trick will generate a temp <a /> tag
+                    var link = document.createElement("a");
+                    link.href = uri;
+
+                    //set the visibility hidden so it will not effect on your web-layout
+                    link.style = "visibility:hidden";
+                    link.download = "report.csv";
+
+                    //this part will append the anchor tag and remove it after automatic click
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                fail: function () {
+                    console.info(arguments);
+                }
+            })
+        });
+    });
+</script>

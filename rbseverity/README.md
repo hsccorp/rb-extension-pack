@@ -1,5 +1,5 @@
-Comment Severity & Category Extension
-=====================================
+Comment Severity, Category, Defect Cause and Phase Injected Extension
+=====================================================================
 
 Overview
 --------
@@ -13,11 +13,20 @@ and Category. The values for these are as per the HSC review tracker template.
 Severity and category are shown alongside the comments in reviews and in e-mails, and
 can be altered in the review dialog.
 
+The extension also provides support to mention the defect cause and phase injected
+for a defect while disposing off the comments. These appear as drop downs on the 
+commentIssuebar on the review page.
+
 
 Requirements
 ------------
 
-This extension requires Review Board 2.0 beta 1 or higher.
+This extension requires a particular hook which is not part of the official 
+ReviewBoard release yet. A version of ReviewBoard supporting the hook can be
+picked from: https://github.com/hsccorp/reviewboard/tree/hsc_2.5.2
+
+If run without the hook, the defect cause and phase injected won't work. Severity and 
+category would work.
 
 
 Status

@@ -10,12 +10,12 @@ PACKAGE = 'rbseverity'
 setup(
     name=PACKAGE,
     version=get_package_version(),
-    description='Comment severity fields for Review Board.',
+    description='Comment severity fields for Review Board',
     url='http://www.reviewboard.org/',
     author='Beanbag, Inc.',
     author_email='support@beanbaginc.com',
-    maintainer='Beanbag, Inc.',
-    maintainer_email='support@beanbaginc.com',
+    maintainer='Vinay Kumar, Viney Yadav,',
+    maintainer_email='vinay.kumar@hsc.com',
     packages=['rbseverity'],
     entry_points={
         'reviewboard.extensions': [

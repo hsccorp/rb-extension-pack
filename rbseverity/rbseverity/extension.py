@@ -2,7 +2,6 @@ from reviewboard.extensions.base import Extension, JSExtension
 from reviewboard.extensions.hooks import CommentDetailDisplayHook
 from reviewboard.urls import reviewable_url_names, review_request_url_names
 
-
 apply_to_url_names = set(reviewable_url_names + review_request_url_names)
 
 
@@ -13,9 +12,19 @@ class SeverityCommentDetailDisplay(CommentDetailDisplayHook):
     to show the selected severity.
     """
     SEVERITY_LABELS = {
+        'critical': 'Critical',
         'major': 'Major',
         'minor': 'Minor',
-        'info': 'Info',
+        'enhancement': 'Enhancement',
+    }
+
+    CATEGORY_LABELS = {
+        'std': 'Standards',
+        'func': 'Functional',
+        'poor': 'Poor Practice',
+        'logical': 'Logical',
+        'ppt': 'Presetation/Documantation',
+        'query': 'Query/Clarification/Recommendation',
     }
 
     HTML_EMAIL_COMMON_SEVERITY_CSS = (
@@ -24,43 +33,55 @@ class SeverityCommentDetailDisplay(CommentDetailDisplayHook):
     )
 
     HTML_EMAIL_SPECIFIC_SEVERITY_CSS = {
+        'critical': 'color: #AA0000;',
         'major': 'color: #AA0000;',
         'minor': 'color: #CC5500;',
-        'info': 'color: #006600;',
+        'enhancement': 'color: #006600;',
     }
 
     def render_review_comment_detail(self, comment):
         """Renders the severity of a comment on a review."""
         severity = comment.extra_data.get('severity')
+        category = comment.extra_data.get('category')
 
-        if not severity:
-            return ''
+#        if not severity:
+#            return ''
 
-        return ('<p class="comment-severity comment-severity-%s">'
-                'Severity: %s'
+        return ('<p>'
+                '<b>Severity: </b>'
+                '<span class="comment-severity comment-severity-%s">'
+                '%s'
+                '</span>'
+                '<b>   Category: %s </b>'
                 '</p>'
-                % (severity, self._get_severity_label(severity)))
+                % (severity, self._get_severity_label(severity),self._get_category_label(category)))
+
 
     def render_email_comment_detail(self, comment, is_html):
         """Renders the severity of a comment on an e-mail."""
         severity = comment.extra_data.get('severity')
+        category = comment.extra_data.get('category')
 
-        if not severity:
-            return ''
+#        if not severity:
+#            return ''
 
         if is_html:
             specific_css = self.HTML_EMAIL_SPECIFIC_SEVERITY_CSS.get(
                 severity, '')
 
-            return ('<p style="%s%s">Severity: %s</p>'
+            return ('<p style=%s> Severity: <span style="%s">%s</span>  Category:%s </p>'
                     % (self.HTML_EMAIL_COMMON_SEVERITY_CSS,
                        specific_css,
-                       self._get_severity_label(severity)))
+                       self._get_severity_label(severity),
+                       self._get_category_label(category)))
         else:
-            return '[Severity: %s]\n' % self._get_severity_label(severity)
+            return '[Severity: %s]\n[Category: %s]\n' % self._get_severity_label(severity) % self._get_category_label(category)
 
     def _get_severity_label(self, severity):
         return self.SEVERITY_LABELS.get(severity, 'Unknown')
+
+    def _get_category_label(self, category):
+        return self.CATEGORY_LABELS.get(category, 'Unknown')
 
 
 class SeverityJSExtension(JSExtension):
@@ -97,3 +118,4 @@ class SeverityExtension(Extension):
 
     def initialize(self):
         SeverityCommentDetailDisplay(self)
+

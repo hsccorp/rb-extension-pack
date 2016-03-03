@@ -1,11 +1,16 @@
-@major-color: #AA0000;
-@minor-color: #CC5500;
-@info-color: #006600;
+@critical-color: #F7081A;
+@major-color: #F472A3;
+@minor-color: #2763E5;
+@enhancement-color: #05FD2E;
 
 
 .comment-severity {
   font-weight: bold;
   margin: 1.5em 0;
+
+  &.comment-severity-critical {
+    color: @critical-color;
+  }
 
   &.comment-severity-major {
     color: @major-color;
@@ -15,12 +20,33 @@
     color: @minor-color;
   }
 
-  &.comment-severity-info {
-    color: @info-color;
+  &.comment-severity-enhancement {
+    color: @enhancement-color;
   }
 }
 
+#comment-severity-critical {
+  color: @critical-color;
+}
+
+#comment-severity-major {
+  color: @major-color;
+}
+
+#comment-severity-minor {
+  color: @minor-color;
+}
+
+
+#comment-severity-enhancement {
+  color: @enhancement-color;
+}
+
 .comment-dlg {
+  .save-critical {
+    color: @critical-color;
+  }
+
   .save-major {
     color: @major-color;
   }
@@ -29,7 +55,7 @@
     color: @minor-color;
   }
 
-  .save-info {
-    color: @info-color;
+  .save-enhancement {
+    color: @enhancement-color;
   }
 }

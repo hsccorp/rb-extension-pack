@@ -1,17 +1,16 @@
-Comment Severity Extension
-==========================
+Comment Severity & Category Extension
+=====================================
 
 Overview
 --------
 
-This extension provides support for setting the severity level of a comment
-when commenting on a diff or a file attachment.
+This extension provides support for setting the severity level and category of
+a comment when commenting on a diff or a file attachment.
 
-The comment dialog is extended to replace the `Save` button with a series
-of severity buttons. Clicking one of these buttons will save the comment at
-that severity level.
+The comment dialog has been extended with two drop downs to select the severity
+and Category. The values for these are as per the HSC review tracker template.
 
-Severities are shown alongside the comments in reviews and in e-mails, and
+Severity and category are shown alongside the comments in reviews and in e-mails, and
 can be altered in the review dialog.
 
 
@@ -25,3 +24,4 @@ Status
 ------
 
 This extension is production-ready.
+

@@ -1,0 +1,159 @@
+/* TODO: Reuse the colors from diffviewer.less, once they're moved out. */
+.pdfreview-review-ui-diff-thumbnail .orig-pdf {
+  border: 1px #FF7777 solid;
+  display: inline-block;
+}
+.pdfreview-review-ui-diff-thumbnail .modified-pdf {
+  border: 1px #63C363 solid;
+  display: inline-block;
+  margin-left: 5px;
+}
+.pdfreview-review-ui {
+  background: white;
+  position: relative;
+  -moz-border-radius: 0 0 6px 6px;
+  -webkit-border-radius: 0 0 6px 6px;
+  border-radius: 0 0 6px 6px;
+}
+.pdfreview-review-ui .review-ui-header table {
+  width: 100%;
+}
+.pdfreview-review-ui .review-ui-error {
+  text-align: center;
+  padding: 2em;
+}
+.review-ui-inline .pdfreview-review-ui {
+  padding: 0;
+}
+.pdfreview-review-ui img {
+  display: block;
+  margin: 0 auto;
+  padding: 0;
+}
+.pdfreview-review-ui .caption {
+  margin-bottom: 1em;
+  text-align: center;
+}
+.pdfreview-review-ui .pdf-diffs {
+  padding: 2em;
+  text-align: center;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-slider {
+  margin: 2em auto 0 auto;
+  width: 200px;
+}
+.pdfreview-review-ui .pdf-diffs .orig-pdf {
+  border: 1px #FF7777 solid;
+}
+.pdfreview-review-ui .pdf-diffs .modified-pdf {
+  border: 1px #63C363 solid;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-container {
+  display: inline-block;
+  float: none;
+  margin: 0 2em;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-diff-difference canvas {
+  border: 1px #CCCCCC solid;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-diff-two-up img {
+  display: inline-block;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-diff-two-up .pdf-container-orig {
+  right: 50%;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-diff-two-up .pdf-container-modified {
+  left: 50%;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-diff-onion .pdf-containers,
+.pdfreview-review-ui .pdf-diffs .pdf-diff-split .pdf-containers {
+  margin: auto;
+  position: relative;
+}
+.pdfreview-review-ui .pdf-diffs .pdf-diff-onion .pdf-containers .orig-pdf,
+.pdfreview-review-ui .pdf-diffs .pdf-diff-split .pdf-containers .orig-pdf,
+.pdfreview-review-ui .pdf-diffs .pdf-diff-onion .pdf-containers .modified-pdf,
+.pdfreview-review-ui .pdf-diffs .pdf-diff-split .pdf-containers .modified-pdf {
+  display: block;
+  margin: 0;
+  position: absolute;
+}
+.pdfreview-review-ui .pdf-diff-split-container-orig,
+.pdfreview-review-ui .pdf-diff-split-container-modified {
+  overflow: hidden;
+  position: absolute;
+}
+.pdfreview-review-ui .pdf-diff-split-container-orig .orig-pdf {
+  left: 0;
+}
+.pdfreview-review-ui .pdf-diff-split-container-modified {
+  border-left: 1px solid #999999;
+  right: 0;
+}
+.pdfreview-review-ui .pdf-diff-split-container-modified .modified-pdf {
+  right: 0;
+}
+.pdfreview-review-ui .pdf-diff-modes {
+  background: #e8e8e8;
+  border-bottom: 1px #c2c2c2 solid;
+  list-style: none;
+  margin: 0;
+  padding: 1em;
+  text-align: center;
+}
+.pdfreview-review-ui .pdf-diff-modes li {
+  display: inline-block;
+  margin: 0 1em;
+  padding: 0;
+  text-align: center;
+}
+.pdfreview-review-ui .pdf-diff-modes li.selected a {
+  font-weight: bold;
+  color: #333;
+}
+.pdfreview-review-ui .pdf-diff-modes li a {
+  color: #444;
+  padding: 1em 0;
+}
+.pdfreview-review-ui .selection {
+  border: 1px #a1c0e3 solid;
+  position: absolute;
+}
+.pdfreview-review-ui .selection.draft {
+  border: 1px #aceb6f solid;
+}
+.pdfreview-review-ui .selection.draft .selection-flag {
+  background: #aceb6f;
+}
+.pdfreview-review-ui .selection.draft.can-update-bound .selection-flag {
+  cursor: move;
+}
+.pdfreview-review-ui .selection.draft.can-update-bound .resize-icon {
+  background-color: #aceb6f;
+  bottom: 0;
+  right: 0;
+  position: absolute;
+  height: 0.5em;
+  width: 0.5em;
+  cursor: se-resize;
+}
+.pdfreview-review-ui .selection-flag {
+  background-color: #a1c0e3;
+  cursor: pointer;
+  height: 2em;
+  left: 0px;
+  line-height: 170%;
+  text-align: center;
+  top: 0px;
+  width: 2em;
+}
+.pdfreview-review-ui .selection-container {
+  cursor: crosshair;
+  position: absolute;
+  margin: 0;
+  z-index: 30;
+}
+.pdfreview-review-ui .selection-rect {
+  border: 1px #ff0000 dashed;
+  position: absolute;
+}

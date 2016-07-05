@@ -1,0 +1,39 @@
+{% extends base_template %}
+{% load i18n %}
+{% load reviewtags %}
+
+{% block title %}{{xml.filename}}{% if caption %}: {{caption}}
+{% endif %}{% endblock %}
+
+{% block scripts-post %}
+{{block.super}}
+
+{% ext_js_bundle extension "pdfreviewable" %}
+
+<script language="javascript"
+src="{{MEDIA_URL}}ext/pdfreview-review-ui-extension/js/PDFReviewableModel.js">
+</script>
+
+<script language="javascript"
+src="{{MEDIA_URL}}ext/pdfreview-review-ui-extension/js/PDFReviewableView.js">
+</script>
+
+<script language="javascript">
+    $(document).ready(function() {
+        var view = new PDFReviewableView({
+            model: new PDFReviewable({
+                attachmentID: '{{PDF.id}}',
+                caption: '{{caption|escapejs}}',
+                rendered: '{{review_ui.render|escapejs}}'
+            })
+        });
+        view.render();
+
+        $('#pdfreview-review-ui-container').append(view.$el);
+    });
+</script>
+{% endblock %}
+
+{% block review_ui_content %}
+<div id="pdfreview-review-ui-container">hello this is a new div</div>
+{% endblock %}

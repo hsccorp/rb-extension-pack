@@ -24,28 +24,41 @@ PDFAttachmentView = Backbone.View.extend({
      * Renders the view.
      *
      * This will by default render the template into the element and begin
-     * loading images.
+     * loading the document.
      */
     render: function(pdfUrl, topLevelDiv) {
 
         PDFJS.getDocument(pdfUrl).then(function(pdf) {
 
+            /*
+             * The page is scaled by a factor of 1.5 before being rendered.
+             * This makes it look better. With a 1:1 scaling, the user would
+             * want to zoom in. With the zoom feature not provided right now
+             * a default scaling seems better option.
+             *
+             * NOTE: The same scaling is used at the backend to create
+             * thumbnails for the regions where reviewer has provided comments.
+             * If changing this scale, do change the scale at backend too i.e.
+             * in extension.py file.
+             */
             var scale = 1.5;
 
+            /*
+             * Each page of the PDF document is rendered in one canvas element.
+             * Each canvas element resides in a div. All these divs are
+             * appended to the topLevelDiv.
+             */
             for (var i = 1; i <= pdf.numPages; i++) {
                 pdf.getPage(i).then(function handlePage(page){
                     var viewport = page.getViewport(scale);
                     var pageDiv = document.createElement('div');
                     pageDiv.id = 'pdfdiv' + page.pageIndex;
                     pageDiv.className = 'pdfdiv';
-                    pageDiv.style["text-align"] = "center";                  // TBD: move it to css file
                     topLevelDiv.append(pageDiv);
 
                     var canvas = document.createElement('canvas');
                     canvas.className = 'pdfcanvas';
                     canvas.id = 'pdfcanvas' + page.pageIndex;
-                    canvas.style.border = '1px solid black';   // TBD: move it to css
-
                     var context = canvas.getContext('2d');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
@@ -58,19 +71,9 @@ PDFAttachmentView = Backbone.View.extend({
                 });
             }
         });
-
-
-    /*    $("canvas").on("mousedown", function(){
-            console.log('md');
-        });
-
-        $("canvas").on("mouseup", function(){
-            console.log('mu');
-        });
-*/
+        
         // Set the commentRegion
-        this.$commentRegion = this.$el; //TBD: is this OK?
-        this.$commentRegion = topLevelDiv;
+        this.$commentRegion = topLevelDiv; 
 
         return this;
     },
@@ -82,29 +85,33 @@ PDFAttachmentView = Backbone.View.extend({
      * be set by a subclass.
      */
     getSelectionRegion: function() {
-        var $region = this.$commentRegion,
-            offset = $region.position();
-
-        /*
-         * The margin: 0 auto means that position.left() will return
-         * the left-most part of the entire block, rather than the actual
-         * position of the region on Chrome. Every other browser returns 0
-         * for this margin, as we'd expect. So, just play it safe and
-         * offset by the margin-left. (Bug #1050)
+        
+        /*this sets the selection region with respect to first page canvas
          */
-        offset.left += $region.getExtents('m', 'l');
-
-        return {
-            left: offset.left,
-            top: offset.top,
-            width: $region.width(),
-            height: $region.height()
-        };
-    }
+      
+        var allPages = $(".pdfcanvas"),firstPage = $("#pdfcanvas0"),lastPage = $("#pdfcanvas"+(allPages.length - 1));
+        return {            
+                 left: firstPage.position().left,           
+                 top: firstPage.position().top,            
+                 width: firstPage.width(),            
+                 height: lastPage.position().top + lastPage.height() - firstPage.position().top        
+               };
+        }
 });
 
 
 
+/*
+ * Displays a review UI for PDF documents.
+ *
+ * This supports reviewing individual PDF documents only. The document will
+ * be displayed, centered, and all existing comments will be shown as selection
+ * boxes on top of it. Users can click and drag across the PDF document to
+ * leave a comment on that area.
+ *
+ * In case the document has multiple revisions, it also presents a dropdown to
+ * choose a revision to view.
+ */
 PDFReviewableView = RB.FileAttachmentReviewableView.extend({
     className: 'pdfreview-review-ui',
 
@@ -115,6 +122,19 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
         'mouseup .selection-container': '_onMouseUp',
         'mousemove .selection-container': '_onMouseMove'
     },
+
+    captionItemTemplate: _.template([
+         '<td>',
+          ' <h1 class="caption">',
+          '  <%- caption %>',
+          ' </h1>',
+          '</td>'
+    ].join('')),
+      
+    captionTableTemplate: _.template(
+         '<table><tr><%= items %></tr></table>'
+    ),
+
 
     /*
      * Initializes the view.
@@ -148,7 +168,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
     /*
      * Renders the view.
      *
-     * This will set up a selection area over the image and create a
+     * This will set up a selection area over the PDF document and create a
      * selection rectangle that will be shown when dragging.
      *
      * Any time the window resizes, the comment positions will be adjusted.
@@ -157,7 +177,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
         var self = this,
             captionItems = [],
             $header;
-
+  
         this._$selectionArea = $('<div/>')
             .addClass('selection-container')
             .hide()
@@ -206,26 +226,47 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             .addClass('review-ui-header')
             .prependTo(this.$el);
 
-        if (this.model.get('numRevisions') > 1) {
-            $revisionLabel = $('<div id="revision_label" />')
-                .appendTo($header);
-            this._revisionLabelView = new RB.FileAttachmentRevisionLabelView({
-                el: $revisionLabel,
-                model: this.model
-            });
-            this._revisionLabelView.render();
-            this.listenTo(this._revisionLabelView, 'revisionSelected',
-                          this._onRevisionSelected);
+        /*
+         * When the document has multiple revisions, show a dropdown to view
+         * different revisions. 
+         */
+        var numRevisions = this.model.get('numRevisions');
+        if (numRevisions > 1) {
+            var revisionIDs = this.model.get('attachmentRevisionIDs'),
+                revisionDiv = document.createElement('div');
+            revisionDiv.className = "pdf-revision-selector-div";
+            ($header).append(revisionDiv);
 
-            $revisionSelector = $('<div id="attachment_revision_selector" />')
-                .appendTo($header);
-            this._revisionSelectorView = new RB.FileAttachmentRevisionSelectorView({
-                el: $revisionSelector,
-                model: this.model
+            var label = $("<label>").text('Choose the revision');
+            label.attr("class","pdf-revision-selector-label");
+            label.appendTo(revisionDiv);
+
+            var choices = [];
+            for(var i = 1; i <= numRevisions; i++)
+            {
+                choices.push(i.toString());   
+            }
+
+            /*here select option  allows us to create a drop down 
+             *to choose our revision document
+            */
+
+            var select = $("<select/>");
+            $.each(choices, function(a, b) {
+                select.append($("<option/>").attr("value", b).text(b));
             });
-            this._revisionSelectorView.render();
-            this.listenTo(this._revisionSelectorView, 'revisionSelected',
-                          this._onRevisionSelected);
+          
+            select.val(this.model.get('fileRevision')).change();
+            select.attr("class", "pdf-revision-selector");
+            select.appendTo(revisionDiv);
+
+            /* Add a listener for the dropdown */
+            select.on("change", function (e) {
+                console.log("x");
+                var selectedRevision = revisionIDs[this.selectedIndex],
+                    redirectURL = '../' + selectedRevision + '/';
+                window.location.replace(redirectURL);
+            });
 
             if (!this.renderedInline) {
                 captionItems.push(this.captionItemTemplate({
@@ -252,42 +293,6 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
         }
 
         return this;
-    },
-
-    /*
-     * Callback for when a new file revision is selected.
-     *
-     * This supports single revisions and diffs. If 'base' is 0, a
-     * single revision is selected, If not, the diff between `base` and
-     * `tip` will be shown.
-     */
-    _onRevisionSelected: function(revisions) {
-        var revisionIDs = this.model.get('attachmentRevisionIDs'),
-            base = revisions[0],
-            tip = revisions[1],
-            revisionBase,
-            revisionTip,
-            redirectURL;
-
-        // Ignore clicks on No Diff Label
-        if (tip === 0) {
-            return;
-        }
-
-        revisionTip = revisionIDs[tip-1];
-
-        /* Eventually these hard redirects will use a router
-         * (see diffViewerPageView.js for example)
-         * this.router.navigate(base + '-' + tip + '/', {trigger: true});
-         */
-
-        if (base === 0) {
-            redirectURL = '../' + revisionTip + '/';
-        } else {
-            revisionBase = revisionIDs[base-1];
-            redirectURL = '../' + revisionBase + '-' + revisionTip + '/';
-        }
-        window.location.replace(redirectURL);
     },
 
 
@@ -345,7 +350,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             /*
              * If we don't pass an arbitrary minimum size threshold,
              * don't do anything. This helps avoid making people mad
-             * if they accidentally click on the image.
+             * if they accidentally click on the document.
              */
             if (width > 5 && height > 5) {
                 this.createAndEditCommentBlock({

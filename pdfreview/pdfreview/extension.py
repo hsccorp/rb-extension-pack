@@ -1,15 +1,17 @@
 import logging
 import os
+from subprocess import call
 from reviewboard.extensions.base import Extension
 from reviewboard.extensions.hooks import ReviewUIHook
 from reviewboard.reviews.ui.base import FileAttachmentReviewUI
-from PyPDF2 import PdfFileWriter, PdfFileReader
-from PythonMagick import Image
 from reviewboard.settings import MEDIA_ROOT
 from django.utils.html import escape
 from reviewboard.attachments.mimetypes import register_mimetype_handler, MimetypeHandler
 from django.utils.safestring import mark_safe
-
+try:
+    from PyPDF2 import PdfFileWriter, PdfFileReader
+except:
+    pass
 
 class PDFReviewUI(FileAttachmentReviewUI):
     """ReviewUI for PDF mimetypes"""
@@ -58,7 +60,6 @@ class PDFReviewUI(FileAttachmentReviewUI):
             # corrupted data. Either way, don't display anything.
             return None
 
-        logging.error(" working:")
         file_path = os.path.join(MEDIA_ROOT, comment.file_attachment.file.name)
         storage = comment.file_attachment.file.storage
         basename = file_path
@@ -98,13 +99,13 @@ class PDFReviewUI(FileAttachmentReviewUI):
                 output_stream = file("out.pdf", "wb")
                 output.write(output_stream)
                 output_stream.close()
-                im = Image('out.pdf')
-                im.quality(100)
-                im.magick('PNG')
 
-                im.write(str(new_name))
+                call(["convert", "out.pdf", str(new_name)])
 
-            except (IOError, KeyError) as e:
+              #  with wandImage(filename='out.pdf') as img:
+              #      img.save(filename=str(new_name))
+
+            except Exception as e:
                 logging.error('Error cropping image file %s at %d, %d, %d, %d '
                               'and saving as %s: %s' %
                               (file_path, x, y, width, height, new_name, e),
@@ -117,8 +118,6 @@ class PDFReviewUI(FileAttachmentReviewUI):
             '<img class="modified-image" src="%s" width="%s" height="%s" '
             'alt="%s" />'
             % (pdf_url, width, height, escape(comment.text)))
-        logging.error("pdf html :")
-        logging.error(pdf_html)
 
         return pdf_html
 
@@ -140,18 +139,24 @@ class PDFMimetype(MimetypeHandler):
                 input1 = PdfFileReader(file(file_path1, "rb"))
                 output = PdfFileWriter()
                 page = input1.getPage(0)
-                page.scale(1.5, 1.5)
                 output.addPage(page)
                 page = output.getPage(0)
                 output_stream = file("out.pdf", "wb")
                 output.write(output_stream)
                 output_stream.close()
-                im = Image('out.pdf')
-                im.quality(100)
-                im.magick('PNG')
-                im.write(str(new_name2))
 
-            except (IOError, KeyError) as e:
+                call(["convert", "out.pdf", str(new_name2)])
+
+ #               with wandImage(filename='out.pdf') as img:
+ #                   img.save(filename=str(new_name2))
+ #               im = Image('out.pdf')
+ #               im.quality(100)
+ #               im.magick('PNG')
+ #               im.write(str(new_name2))
+
+            except Exception as e:
+                logging.error('Error creating thumbnail for the doc: %s' %
+                              e, exc_info=1)
                 return ""
 
         pdf_url = storage1.url(new_name3)

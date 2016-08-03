@@ -10,7 +10,9 @@ setup(
     version=VERSION,
     description="Extension for ReviewBoard with support to review PDF documents",
     author="Hughes Systique Corporation",
+    author_email="viney.yadav@hsc.com",
     url='http://hsc.com/',
+    download_url='',
     packages=["pdfreview"], 
     entry_points={
         'reviewboard.extensions':

@@ -17,7 +17,6 @@ class PDFReviewUI(FileAttachmentReviewUI):
     """ReviewUI for PDF mimetypes"""
     name = 'PDF'
     supported_mimetypes = ['application/pdf']
-    # template_name = 'pdfreview/pdfreview.html'
     css_bundles = ['pdfreviewable']
     js_bundles = ['pdfreviewable']
 
@@ -50,6 +49,11 @@ class PDFReviewUI(FileAttachmentReviewUI):
         return result
 
     def get_comment_thumbnail(self, comment):
+        """Returns a thumbnail of the comment.
+
+        If the thumbnail does not exist, it is created.
+        """
+        page_scale = 1.5
         try:
             x = int(comment.extra_data['x'])
             y = int(comment.extra_data['y'])
@@ -62,57 +66,72 @@ class PDFReviewUI(FileAttachmentReviewUI):
 
         file_path = os.path.join(MEDIA_ROOT, comment.file_attachment.file.name)
         storage = comment.file_attachment.file.storage
-        basename = file_path
 
-        new_name = '%s_%d_%d_%d_%d.png' % (basename, x, y, width, height)
-        new_name1 = '%s_%d_%d_%d_%d.png' % (comment.file_attachment.file.name, x, y, width, height)
-        if not storage.exists(new_name):
+        thumbnail_abs_path = '%s_%d_%d_%d_%d.png' % (file_path, x, y, width, height)
+        thumbnail_path = '%s_%d_%d_%d_%d.png' % (comment.file_attachment.file.name, x, y, width, height)
+
+        # If the thumbnail does not exist, create it
+        if not storage.exists(thumbnail_abs_path):
             try:
                 input1 = PdfFileReader(file(file_path, "rb"))
                 output = PdfFileWriter()
                 numpages = input1.getNumPages()
-                i=0
                 page_height=0
-                y1=0
-                page_height1 = 0
+                offset_from_curr_page=0
+                offset_from_top = 0
+                # Find the page on which the comment was provided.
+                # The y value is the offset of the comment from top of first
+                # page. Add the page height of each page and find where y lies.
                 for i in range(0, numpages):
                     page = input1.getPage(i)
-                    page_height = page.mediaBox.getHeight() + 1.3
-                    page_height *= 1.5
-                    page_height1 += page_height
-                    if y <= page_height1:
+                    # When rendering the page on UI, each page was scaled up by
+                    # 50% (refer: static/js/views/pdfReviewableView.js)
+                    # Scale the height by same ratio. The canvas element
+                    # at UI also has a 1px border. For the top and bottom borders
+                    # add 2 to the height.
+                    page_height = int(float(page.mediaBox.getHeight()) * page_scale) + 2
+                    offset_from_top += page_height
+                    if y <= offset_from_top:
                         pageno = i
-                        page_height1 -= page_height
-                        y1 = y - page_height1
+                        offset_from_top -= page_height
+                        # offset_from_top is bottom of the prev page. Get the
+                        # offset of the comment from top of this page. Take
+                        # care of adding the 1px top border.
+                        offset_from_curr_page = y - offset_from_top + 1
                         break
                 page = input1.getPage(pageno)
-                page.scale(1.5, 1.5)
+                # Scale the page before cropping
+                page.scale(page_scale, page_scale)
 
-                page.cropBox.lowerLeft = (x, page_height - (y1 + height))
-                page.cropBox.upperRight = (x + width, page_height - y1)
+                page.cropBox.lowerLeft = (x, int(page_height) - (offset_from_curr_page + height))
+                page.cropBox.upperRight = (x + width, int(page_height) - offset_from_curr_page)
 
                 output.addPage(page)
                 page = output.getPage(0)
-                page.mediaBox.lowerLeft = (x, page_height - (y1 + height))
-                page.mediaBox.upperRight = (x + width, page_height - y1)
+                page.mediaBox.lowerLeft = (x, int(page_height) - (offset_from_curr_page + height))
+                page.mediaBox.upperRight = (x + width, int(page_height) - offset_from_curr_page)
 
-                output_stream = file("out.pdf", "wb")
+                # Save the cropped command pdf as filename_tmp in same folder.
+                # Will be deleted after conversion to image.
+                output_stream = file(str(thumbnail_abs_path) + '_tmp', "wb")
                 output.write(output_stream)
                 output_stream.close()
 
-                call(["convert", "out.pdf", str(new_name)])
-
-              #  with wandImage(filename='out.pdf') as img:
-              #      img.save(filename=str(new_name))
+                # Covert to image.
+                call(["convert",
+                      str(thumbnail_abs_path) + '_tmp',
+                      str(thumbnail_abs_path)])
+                # Get rid of the temporary PDF file
+                os.remove(str(thumbnail_abs_path) + '_tmp')
 
             except Exception as e:
                 logging.error('Error cropping image file %s at %d, %d, %d, %d '
                               'and saving as %s: %s' %
-                              (file_path, x, y, width, height, new_name, e),
+                              (file_path, x, y, width, height, thumbnail_abs_path, e),
                               exc_info=1)
                 return ""
 
-        pdf_url = storage.url(new_name1)
+        pdf_url = storage.url(thumbnail_path)
 
         pdf_html = (
             '<img class="modified-image" src="%s" width="%s" height="%s" '
@@ -123,43 +142,35 @@ class PDFReviewUI(FileAttachmentReviewUI):
 
 
 class PDFMimetype(MimetypeHandler):
-    """Handles image mimetypes."""
+    """Handles PDF mimetypes."""
 
     supported_mimetypes = ['application/pdf']
 
     def get_thumbnail(self):
-        """Return a thumbnail of the image."""
-        file_path1 = os.path.join(MEDIA_ROOT, self.attachment.file.name)
+        """Return a thumbnail of the first page of the PDF document."""
+        file_path = os.path.join(MEDIA_ROOT, self.attachment.file.name)
         storage1 = self.attachment.file.storage
-        basename1 = file_path1
-        new_name2 = '%s_%d.png' % (basename1, 300)
-        new_name3 = '%s_%d.png' % (self.attachment.file.name, 300)
-        if not storage1.exists(new_name2):
+        thumbnail_path = '%s_%d.png' % (file_path, 300)
+        file_thumbnail_path = '%s_%d.png' % (self.attachment.file.name, 300)
+        if not storage1.exists(thumbnail_path):
             try:
-                input1 = PdfFileReader(file(file_path1, "rb"))
+                input1 = PdfFileReader(file(file_path, "rb"))
                 output = PdfFileWriter()
                 page = input1.getPage(0)
                 output.addPage(page)
-                page = output.getPage(0)
-                output_stream = file("out.pdf", "wb")
+                output_stream = file(str(thumbnail_path) + "_tmp", "wb")
                 output.write(output_stream)
                 output_stream.close()
 
-                call(["convert", "out.pdf", str(new_name2)])
-
- #               with wandImage(filename='out.pdf') as img:
- #                   img.save(filename=str(new_name2))
- #               im = Image('out.pdf')
- #               im.quality(100)
- #               im.magick('PNG')
- #               im.write(str(new_name2))
+                call(["convert", str(thumbnail_path) + "_tmp", str(thumbnail_path)])
+                os.remove(str(thumbnail_path) + "_tmp")
 
             except Exception as e:
                 logging.error('Error creating thumbnail for the doc: %s' %
                               e, exc_info=1)
                 return ""
 
-        pdf_url = storage1.url(new_name3)
+        pdf_url = storage1.url(file_thumbnail_path)
 
         return mark_safe(
             '<div class="file-thumbnail">'
@@ -170,6 +181,13 @@ class PDFMimetype(MimetypeHandler):
 
 
 class PDFReviewUIExtension(Extension):
+    """Extends Review Board for reviewing PDF document.
+
+    When creating or updating comments, users will be required to set a
+    severity level. This level will appear in the reviews, in e-mails, and
+    in the API (through the comment's extra_data).
+    """
+
     css_bundles = {
         'default': {
             'source_filenames': ['css/pdfreviewable.css'],
@@ -182,8 +200,13 @@ class PDFReviewUIExtension(Extension):
                 'js/models/pdfReviewableModel.js',
                 'js/views/pdfReviewableView.js',
                 'js/lib/pdf.js',
+            ],
+        },
+        'worker': {
+            'source_filenames': [
                 'js/lib/pdf.worker.js'
             ],
+            'output_filename' : 'pdf.worker.js'
         },
     }
 

@@ -4,7 +4,7 @@
  * This handles the common functionality, such as loading the pdf, determining
  * the commentable region, rendering, and so on.
  *
- * This view displays the PDF documents using pdf.js and allows it to be 
+ * This view displays the PDF documents using pdf.js and allows it to be
  * commented on.
  */
 PDFAttachmentView = Backbone.View.extend({
@@ -28,8 +28,9 @@ PDFAttachmentView = Backbone.View.extend({
      */
     render: function(pdfUrl, topLevelDiv) {
 
+        PDFJS.disableWorker = true;
+        PDFJS.workerSrc = '/static/ext/pdfreview.extension.PDFReviewUIExtension/js/lib/pdf.worker.js';
         PDFJS.getDocument(pdfUrl).then(function(pdf) {
-
             /*
              * The page is scaled by a factor of 1.5 before being rendered.
              * This makes it look better. With a 1:1 scaling, the user would
@@ -48,13 +49,23 @@ PDFAttachmentView = Backbone.View.extend({
              * Each canvas element resides in a div. All these divs are
              * appended to the topLevelDiv.
              */
+
+            /*
+             * First create all the required divs and append them to the
+             * topLevelDiv. This is done beforehand so that when the PDF
+             * pages are fetched asynchronously, they can be added to the
+             * respective parent div. The pdf.getPage being async, can provide
+             * pages out of order. */
+            for (var i = 0; i < pdf.numPages; i++) {
+                var pageDiv = document.createElement('div');
+                pageDiv.id = 'pdfdiv' + i;
+                pageDiv.className = 'pdfdiv';
+                topLevelDiv.append(pageDiv);
+            }
+
             for (var i = 1; i <= pdf.numPages; i++) {
                 pdf.getPage(i).then(function handlePage(page){
                     var viewport = page.getViewport(scale);
-                    var pageDiv = document.createElement('div');
-                    pageDiv.id = 'pdfdiv' + page.pageIndex;
-                    pageDiv.className = 'pdfdiv';
-                    topLevelDiv.append(pageDiv);
 
                     var canvas = document.createElement('canvas');
                     canvas.className = 'pdfcanvas';
@@ -62,18 +73,18 @@ PDFAttachmentView = Backbone.View.extend({
                     var context = canvas.getContext('2d');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
-                
+
                     //Draw it on the canvas
                     page.render({canvasContext: context, viewport: viewport});
-                
-                    //Add it to the parent div
-                    pageDiv.appendChild(canvas);
+
+                    //Add it to the corresponding parent div
+                    $("#pdfdiv" + page.pageIndex)[0].appendChild(canvas);
                 });
             }
         });
-        
+
         // Set the commentRegion
-        this.$commentRegion = topLevelDiv; 
+        this.$commentRegion = topLevelDiv;
 
         return this;
     },
@@ -85,16 +96,16 @@ PDFAttachmentView = Backbone.View.extend({
      * be set by a subclass.
      */
     getSelectionRegion: function() {
-        
+
         /*this sets the selection region with respect to first page canvas
          */
-      
+
         var allPages = $(".pdfcanvas"),firstPage = $("#pdfcanvas0"),lastPage = $("#pdfcanvas"+(allPages.length - 1));
-        return {            
-                 left: firstPage.position().left,           
-                 top: firstPage.position().top,            
-                 width: firstPage.width(),            
-                 height: lastPage.position().top + lastPage.height() - firstPage.position().top        
+        return {
+                 left: firstPage.position().left,
+                 top: firstPage.position().top,
+                 width: firstPage.width(),
+                 height: lastPage.position().top + lastPage.height() - firstPage.position().top
                };
         }
 });
@@ -130,7 +141,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
           ' </h1>',
           '</td>'
     ].join('')),
-      
+
     captionTableTemplate: _.template(
          '<table><tr><%= items %></tr></table>'
     ),
@@ -177,7 +188,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
         var self = this,
             captionItems = [],
             $header;
-  
+
         this._$selectionArea = $('<div/>')
             .addClass('selection-container')
             .hide()
@@ -228,7 +239,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
 
         /*
          * When the document has multiple revisions, show a dropdown to view
-         * different revisions. 
+         * different revisions.
          */
         var numRevisions = this.model.get('numRevisions');
         if (numRevisions > 1) {
@@ -244,10 +255,10 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             var choices = [];
             for(var i = 1; i <= numRevisions; i++)
             {
-                choices.push(i.toString());   
+                choices.push(i.toString());
             }
 
-            /*here select option  allows us to create a drop down 
+            /*here select option  allows us to create a drop down
              *to choose our revision document
             */
 
@@ -255,7 +266,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             $.each(choices, function(a, b) {
                 select.append($("<option/>").attr("value", b).text(b));
             });
-          
+
             select.val(this.model.get('fileRevision')).change();
             select.attr("class", "pdf-revision-selector");
             select.appendTo(revisionDiv);

@@ -83,6 +83,9 @@
 .pdfreview-review-ui .pdfdiv{
   text-align:center; 
 }
+.pdfreview-review-ui .review-ui-header .pdf-revision-selector-div{
+ min-height: 25px;
+}
 .pdfreview-review-ui .review-ui-header .pdf-revision-selector-div .pdf-revision-selector-label{
  color: #000;
  margin: 2em 2em auto 2em;

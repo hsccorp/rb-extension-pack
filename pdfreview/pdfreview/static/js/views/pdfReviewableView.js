@@ -245,20 +245,20 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             .addClass('review-ui-header')
             .prependTo(this.$el);
 
+        var actionBarDiv = document.createElement('div');
+        actionBarDiv.className = "pdf-revision-selector-div";
+        ($header).append(actionBarDiv);
         /*
          * When the document has multiple revisions, show a dropdown to view
          * different revisions.
          */
         var numRevisions = this.model.get('numRevisions');
         if (numRevisions > 1) {
-            var revisionIDs = this.model.get('attachmentRevisionIDs'),
-                revisionDiv = document.createElement('div');
-            revisionDiv.className = "pdf-revision-selector-div";
-            ($header).append(revisionDiv);
+            var revisionIDs = this.model.get('attachmentRevisionIDs');
 
             var label = $("<label>").text('Choose the revision');
             label.attr("class","pdf-revision-selector-label");
-            label.appendTo(revisionDiv);
+            label.appendTo(actionBarDiv);
 
             var choices = [];
             for(var i = 1; i <= numRevisions; i++)
@@ -277,7 +277,7 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
 
             select.val(this.model.get('fileRevision')).change();
             select.attr("class", "pdf-revision-selector");
-            select.appendTo(revisionDiv);
+            select.appendTo(actionBarDiv);
 
             /* Add a listener for the dropdown */
             select.on("change", function (e) {
@@ -311,15 +311,14 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             }
         }
 
-
         /* Add a page selector */
         var select = $("<select/>");
         select.attr("class", "page-selector");
-        select.appendTo(revisionDiv);
+        select.appendTo(actionBarDiv);
 
         var label = $("<label>").text('Jump to page');
         label.attr("class","page-selector-label");
-        label.appendTo(revisionDiv);
+        label.appendTo(actionBarDiv);
 
         /* Add a listener for the dropdown */
         select.on("change", function (e) {

@@ -81,6 +81,14 @@ PDFAttachmentView = Backbone.View.extend({
                     $("#pdfdiv" + page.pageIndex)[0].appendChild(canvas);
                 });
             }
+
+            /* Populate the page selector */
+            for(var i = 1; i <= pdf.numPages; i++)
+            {
+                var pageId = i.toString();
+                $(".page-selector").append($("<option/>").attr("value", pageId).text(pageId));
+            }
+
         });
 
         // Set the commentRegion
@@ -303,6 +311,22 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
             }
         }
 
+
+        /* Add a page selector */
+        var select = $("<select/>");
+        select.attr("class", "page-selector");
+        select.appendTo(revisionDiv);
+
+        var label = $("<label>").text('Jump to page');
+        label.attr("class","page-selector-label");
+        label.appendTo(revisionDiv);
+
+        /* Add a listener for the dropdown */
+        select.on("change", function (e) {
+            var targetDiv = "#pdfdiv" + this.selectedIndex;
+            $(targetDiv)[0].scrollIntoView({block: "top"})
+        });
+
         return this;
     },
 
@@ -381,7 +405,6 @@ PDFReviewableView = RB.FileAttachmentReviewableView.extend({
      * size/position of the block.
      */
     _onMouseMove: function(evt) {
-        console.log("_onMouseMove");
         if (!this.commentDlg && this._$selectionRect.is(":visible")) {
             var offset = this._$selectionArea.offset(),
                 x = evt.pageX - Math.floor(offset.left) - 1,

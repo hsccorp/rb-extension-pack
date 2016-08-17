@@ -89,4 +89,15 @@
 }
 .pdfreview-review-ui .review-ui-header .pdf-revision-selector-div .pdf-revision-selector{
  margin: 2em auto auto auto;
+ min-width: 40px;
+}
+.pdfreview-review-ui .review-ui-header .pdf-revision-selector-div .page-selector-label{
+ color: #000;
+ margin: 2.7em 2em auto auto;
+ float: right;
+}
+.pdfreview-review-ui .review-ui-header .pdf-revision-selector-div .page-selector{
+ margin: 2em 2em auto auto;
+ float: right;
+ min-width: 40px;
 }
